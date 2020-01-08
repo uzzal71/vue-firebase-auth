@@ -4,29 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Vue Firebase Authentication</title>
-    <script src="https://www.gstatic.com/firebasejs/4.13.0/firebase.js"></script>
+    <title>Firebase Authentication</title>
     <script src="https://unpkg.com/vue"></script>
+    <script src="https://www.gstatic.com/firebasejs/4.12.0/firebase.js"></script>
+    <script src="https://unpkg.com/native-toast@1.2.1/dist/native-toast.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/native-toast@1.2.1/dist/native-toast.css">
 </head>
 <body>
-    
-    <div id="app">
-        <h1>Vue Nilsagor Technology Ltd - Firebase Authentication</h1>
+    <div id="app" class="container">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h1>Vue school - Firebase Authentication</h1><hr/>
+                <div v-if="authUser">
+                    <h3>Singed in as {{ authUser.email }}
+                        <img v-if="linkedGoogle" src="https://www.gstatic.com/mobilesdk/160512_mobilesdk/auth_service_google.svg" alt="">
+                        <img v-if="linkedPassword" src="https://www.gstatic.com/mobilesdk/160409_mobilesdk/images/auth_service_email.svg" alt="">
+                    </h3>
+                    <img :src="authUser.photoURL" height="150px">
+                    <p>What's up {{authUser.displayName || 'friend'}} we know you like {{authUser.favoriteFood || 'food'}}</p>
+                    <button @click.prevent="signOut" class="btn btn-info">Sign Out</button>
+                    <button v-if="!linkedGoogle" @click.prevent="linkGoogle" class="btn btn-info">Link google Account</button>
+                    <button v-else @click.prevent="unlinkGoogle" class="btn btn-info">Unlink google Account</button>
+
+                    <!-- Update user profile -->
+                    <form @submit.prevent="updateProfile">
+                        <h3>Update Profile</h3>
+                        <hr />
+                        <div class="form-group">
+                            <label for="displayName">Display Name</label>
+                            <input type="text" class="form-control" v-model="displayName" placeholder="Your Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="photoURL">photoURL</label>
+                            <input type="text" class="form-control" v-model="photoURL" placeholder="Your photo url">
+                        </div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+
+                    <!-- update user details -->
+                    <form @submit.prevent="updateCustomerDetails">
+                        <h3>Update Additional Details</h3>
+                        <hr />
+                        <div class="form-group">
+                            <label for="text">Favorite Food</label>
+                            <input type="text" class="form-control" v-model="favoriteFood" placeholder="Your Favorite Food">
+                        </div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+
+                    <!-- update user email -->
+                    <form @submit.prevent="updateEmail">
+                        <h3>Update Email</h3>
+                        <hr />
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="text" class="form-control" v-model="email" placeholder="Your Email">
+                        </div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+
+                    <!-- update uesr password -->
+                    <form @submit.prevent="updatePassword">
+                        <h3>Update Password</h3>
+                        <hr />
+                        <div class="form-group">
+                            <label for="email">Password</label>
+                            <input type="password" class="form-control" v-model="newPassword" placeholder="Your Password">
+                        </div>
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </form>
+                </div>
+                <!-- user sign up form -->
+                <div v-else>
+                    <form @submit.prevent="register" class="form">
+                        <h3>Sign Up</h3><hr/>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" v-model="email" placeholder="Type you email">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" v-model="password" placeholder="pick you password">
+                        </div>
+                        <button type="submit" class="btn btn-success">Register</button>
+                    </form>
+                    <br/>
+
+                    <!-- user sign in form -->
+                    <form @submit.prevent="signIn" class="form">
+                        <h3>Sign In</h3><hr/>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" v-model="email" placeholder="Type you email">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" v-model="password"
+                                placeholder="pick you password">
+                        </div>
+                        <button type="submit" class="btn btn-success">Sign in</button>
+                    </form>
+                    <div>
+                        <h2>Sign with google</h2>
+                        <button @click.prevent="signInWithGoogle">Sign in</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         // Your web app's Firebase configuration
         var firebaseConfig = {
-        apiKey: "AIzaSyCMhderGaRkMJNpb9tIzbbIRhwol8cZkUY",
-        authDomain: "vueschool-firebase-auth-bc5e9.firebaseapp.com",
-        databaseURL: "https://vueschool-firebase-auth-bc5e9.firebaseio.com",
-        projectId: "vueschool-firebase-auth-bc5e9",
-        storageBucket: "vueschool-firebase-auth-bc5e9.appspot.com",
-        messagingSenderId: "468778718640",
-        appId: "1:468778718640:web:6ee740e3d5da51d109f275",
-        measurementId: "G-PSQ286SEF4"
+            apiKey: "AIzaSyCMhderGaRkMJNpb9tIzbbIRhwol8cZkUY",
+            authDomain: "vueschool-firebase-auth-bc5e9.firebaseapp.com",
+            databaseURL: "https://vueschool-firebase-auth-bc5e9.firebaseio.com",
+            projectId: "vueschool-firebase-auth-bc5e9",
+            storageBucket: "vueschool-firebase-auth-bc5e9.appspot.com",
+            messagingSenderId: "468778718640",
+            appId: "1:468778718640:web:6ee740e3d5da51d109f275",
+            measurementId: "G-PSQ286SEF4"
         };
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-    </script>   
+
+        new Vue({
+            el: "#app",
+            data: {
+                email: "",
+                password: "",
+                displayName: null,
+                photoURL: null,
+                newPassword: null,
+                favoriteFood: null,
+                authUser: null
+            },
+            computed: {
+                linkedGoogle () {
+                    return !!this.authUser.providerData.find(provider => provider.providerId === "google.com")
+                },
+                linkedPassword() {
+                    return !!this.authUser.providerData.find(provider => provider.providerId === "password")
+                }
+            },
+            methods: {
+                register () {
+                    firebase.auth().createUserWithEmailAndPassword(this.email, this.password)
+                    .catch(error => alert(error.message))
+                },
+                signOut () {
+                    firebase.auth().signOut()
+                },
+                signIn () {
+                    firebase.auth().signInWithEmailAndPassword(this.email, this.password)
+                    .catch(error => alert(error.message))
+                },
+                signInWithGoogle () {
+                    const provider = new firebase.auth.GoogleAuthProvider()
+                    firebase.auth().signInWithPopup(provider)
+                    .catch(error => alert(error.message))
+                    .then(data => console.log(data.user, data.credential.accessToken))
+                },
+                linkGoogle() {
+                    const provider = new firebase.auth.GoogleAuthProvider()
+                    this.authUser.linkWithPopup(provider)
+                        .catch(error => alert(error.message))
+                        .then(data => console.log(data.user, data.credential.accessToken))
+                },
+                unlinkGoogle () {
+                    this.authUser.unlink("google.com")
+                },
+                updateProfile () {
+                    this.authUser.updateProfile ({
+                        displayName: this.displayName,
+                        photoURL: this.photoURL
+                    })
+                },
+                updateEmail () {
+                    this.authUser.updateEmail(this.email)
+                },
+                updatePassword() {
+                    this.authUser.updatePassword(this.newPassword)
+                    .then(() => {this.newPassword = null})
+                    .catch(error => alert(error.message))
+                },
+                updateCustomerDetails () {
+                    firebase.database().ref("users").child(this.authUser.uid)
+                    .update({favoriteFood: this.favoriteFood})
+                }
+            },
+            created () {
+                firebase.auth().onAuthStateChanged(user => {
+                    this.authUser = user
+                    if(user) {
+                        this.displayName = user.displayName
+                        this.photoURL = user.photoURL
+                        this.email = user.email
+                        firebase.database().ref("users").child(user.uid).once('value', snapshot => {
+                            if(snapshot.val()) {
+                                this.favoriteFood = snapshot.val().favoriteFood
+                                Vue.set(this.authUser, 'favoriteFood', this.favoriteFood)
+                            }
+                        })
+                    }
+                })
+            }
+        });
+
+    </script>
 </body>
 </html>
